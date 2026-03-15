@@ -3,7 +3,7 @@
 > **Session data → quality-weighted KPIs → snapshot reporting → BI-ready outputs**
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)
-![Django](https://img.shields.io/badge/Django-4.x-092E20?style=flat-square&logo=django&logoColor=white)
+![Django](https://img.shields.io/badge/Django-5.2-092E20?style=flat-square&logo=django&logoColor=white)
 ![Power BI](https://img.shields.io/badge/Power%20BI-Ready-F2C811?style=flat-square&logo=powerbi&logoColor=black)
 ![SQLite](https://img.shields.io/badge/SQLite-Demo%20Safe-003B57?style=flat-square&logo=sqlite&logoColor=white)
 ![Portfolio](https://img.shields.io/badge/Portfolio-Project%204%20of%204-6366f1?style=flat-square)
@@ -20,7 +20,7 @@ It is a **KPI-first analytics and reporting system** that captures session-level
 
 **This is not a habit tracker. It is not a task manager.**
 
-It is a reporting-oriented analytics project built to demonstrate how raw operational data becomes a business-interpretable performance metric — and how that metric gets delivered to the people who need to act on it.
+It is a reporting-oriented analytics project built to show how raw operational data becomes a business-interpretable KPI and how that KPI can be delivered through dashboards, snapshots, and BI-ready exports.
 
 ---
 
@@ -45,8 +45,8 @@ This single design decision drives the entire KPI model. Every summary, every sn
 | **KPI modelling** | Sessions carry both raw minutes and quality-weighted effective minutes via configurable multipliers |
 | **Snapshot reporting** | `DaySnapshot` and `WeekSnapshot` persist reporting summaries — no recalculation at read time |
 | **Target vs actual analysis** | Dashboard compares day, week, month, and goal-window progress against a configured target |
-| **BI-ready dataset design** | v2 exports follow a clean star-schema fact/dimension contract for direct BI tool consumption |
-| **Reporting workflow design** | Structured CSV delivery surfaces support analysis in spreadsheets and Power BI without transformation |
+| **BI-ready dataset design** | v2 exports follow a fact/dimension-style contract intended for downstream BI tool consumption |
+| **Reporting workflow design** | Structured CSV delivery surfaces support downstream analysis in spreadsheets and Power BI |
 | **End-to-end proof** | Seed command, snapshot build command, and a `.pbix` proof asset are all included in the repository |
 
 **Best role fit**
@@ -173,7 +173,7 @@ The export layer is a deliberate demonstration of **reporting dataset design** �
 
 Tag dimension and bridge tables are available as optional exports for full taxonomy analysis.
 
-The v2 contract is designed to be loaded directly into Power BI without transformation. Column names, types, and key relationships are stable across exports.
+The v2 contract is designed to support direct loading into Power BI with minimal downstream reshaping. Column naming and relationship intent are defined consistently across the export contract.
 
 ---
 
@@ -257,7 +257,7 @@ pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_demo              # Load demo data
 python manage.py build_weekly_snapshot  # Generate weekly reporting snapshots
-python manage.py createsuperuser
+python manage.py createsuperuser        # Optional: only needed for admin access
 python manage.py runserver
 ```
 
@@ -349,7 +349,7 @@ Active day lifecycle, live timer, quality-level input, and the immutable session
 
 ---
 
-### 3 — History & Trend `/history/`
+### 3 — Snapshot History `/snapshots/history/`
 Raw vs effective trend chart, daily breakdown cards, weekly breakdown table, and top-category analysis across the goal window.
 
 ![Snapshot History](docs/proof/screenshots/goaltracker_03_snapshot_history.png)
