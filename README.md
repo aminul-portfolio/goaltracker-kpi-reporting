@@ -1,47 +1,3 @@
-# GoalTracker — Analytics-First Time & Sprint Performance Tracker (Django + Power BI)
-
-GoalTracker is an **analytics-first time tracking system** built to measure daily work quality and sprint momentum. It captures sessions with **quality weighting** (“effective minutes”), rolls them into **daily/sprint KPIs**, and supports **Power BI reporting** with a clean, interview-ready narrative (Hiring Manager Summary).
-
----
-
-## Why this project matters (for Data roles)
-
-Most trackers record hours. GoalTracker answers the questions hiring managers care about:
-
-- How much work was **effective**, not just logged?
-- Are you sustaining **sprint pace** over 7/14/30 days?
-- Where is time concentrated (goal/category/work item)?
-- Can you define metrics clearly and make them reproducible in BI?
-
-This project demonstrates **Data Analyst / Analytics Engineer** skills: metric design, data modeling concepts, and report-driven storytelling.
-
----
-
-## Core features
-
-### Tracking workflow
-- **Active Day** lifecycle: Start Day → track work → End Day reflection  
-  Includes `wake_at`, `sleep_at`, `is_open` for auditability.
-- **Active Timer** (one per active goal)
-  - category
-  - quality level
-  - deliverable (required for “Exceptional”)
-  - accumulated minutes + live running segment
-- **Sessions** (immutable log)
-  - start/end timestamps
-  - duration minutes
-  - quality level + multiplier
-  - **effective minutes**
-  - MAE block (Morning/Afternoon/Evening)
-  - deliverable + notes
-  - optional linkage to **WorkItem** (delivery-focused tracking)
-
-### Taxonomy & slicing
-- Categories (Admin/Planning, Deep Work, Interview Prep, etc.)
-- Optional **WorkItem** support for deliverable-level tracking
-- Tagging model:
-  - `TagGroup`, `Tag`, `SessionTag` (many-to-many sessions tagging)
-
 # GoalTracker — KPI Tracking & BI Reporting
 
 > **Session data → quality-weighted KPIs → snapshot reporting → BI-ready outputs**
@@ -379,14 +335,38 @@ Each project is a different answer to the same underlying question: *given a cat
 
 ## Screenshots
 
-| # | Path | Surface |
-|---|---|---|
-| 1 | `docs/proof/screenshots/goaltracker_01_kpi_dashboard.png` | KPI dashboard |
-| 2 | `docs/proof/screenshots/goaltracker_02_today_tracking.png` | Tracking workflow |
-| 3 | `docs/proof/screenshots/goaltracker_03_snapshot_history.png` | Snapshot history |
-| 4 | `docs/proof/screenshots/goaltracker_04_day_snapshot_detail.png` | Day snapshot detail |
-| 5 | `docs/proof/screenshots/goaltracker_05_exports_hub.png` | Export hub |
-| 6 | `docs/proof/screenshots/goaltracker_06_powerbi_dashboard.png` | Power BI dashboard |
+### 1 — KPI Dashboard `/`
+Target vs actual progress, raw vs effective minutes, goal-window pacing, and category breakdown.
+
+![KPI Dashboard](docs/proof/screenshots/goaltracker_01_kpi_dashboard.png)
+
+---
+
+### 2 — Daily Tracking Workflow `/tracker/today/`
+Active day lifecycle, live timer, quality-level input, and the immutable session log that feeds the KPI model.
+
+![Today Tracking](docs/proof/screenshots/goaltracker_02_today_tracking.png)
+
+---
+
+### 3 — History & Trend `/history/`
+Raw vs effective trend chart, daily breakdown cards, weekly breakdown table, and top-category analysis across the goal window.
+
+![Snapshot History](docs/proof/screenshots/goaltracker_03_snapshot_history.png)
+
+---
+
+### 4 — Day Snapshot Detail `/snapshots/day/<day_key>/`
+Persisted daily summary showing attainment, rating, and the supporting session log with quality and effective minutes visible per row.
+
+![Day Snapshot Detail](docs/proof/screenshots/goaltracker_04_day_snapshot_detail.png)
+
+---
+
+### 5 — Export Hub `/exports/`
+The full v2 Power BI-oriented export contract alongside legacy v1 CSV surfaces, with scope filters and quick-check guidance.
+
+![Exports Hub](docs/proof/screenshots/goaltracker_05_exports_hub.png)
 
 ---
 
@@ -395,9 +375,7 @@ Each project is a different answer to the same underlying question: *given a cat
 - Repository is intended for portfolio and review purposes.
 - Local demo uses SQLite with fully demo-safe setup commands — no external dependencies required.
 - The `.pbix` file is included as a BI proof asset, not a production deliverable.
-- Adding the six screenshots above is the highest-value next packaging step before recruiter distribution.
 
 ---
 
 *No license has been added. Add a `LICENSE` file before making this repository publicly reusable.*
-
