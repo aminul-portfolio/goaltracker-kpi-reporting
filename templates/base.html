@@ -1,0 +1,126 @@
+{# templates/base.html #}
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}GoalTracker{% endblock %}</title>
+
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  {% block page_css %}{% endblock %}
+  {# compatibility: older templates may still use extra_head #}
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body class="{% block body_class %}app-body{% endblock %}">
+  <header class="app-nav">
+    <div class="nav-inner">
+
+      <!-- Brand -->
+      <div class="brand">
+        <a class="brand-link" href="{% url 'dashboard:home' %}">
+          <span class="brand-mark">GT</span>
+          <span class="brand-name">GoalTracker</span>
+        </a>
+
+        {% if goal %}
+          <span class="brand-meta">
+            <span class="dot-sep">•</span>
+            <span class="muted">Active:</span><strong title="{{ goal.name }}">{{ goal.name }}</strong>
+
+          </span>
+        {% endif %}
+      </div>
+
+      <!-- Desktop nav -->
+      <nav class="nav-links" aria-label="Primary navigation">
+        <a class="nav-link {% if request.path == '/' %}is-active{% endif %}" href="{% url 'dashboard:home' %}">Dashboard</a>
+        <a class="nav-link {% if '/history/' in request.path and '/snapshots/' not in request.path %}is-active{% endif %}"
+           href="{% url 'dashboard:history' %}">History + Trend</a>
+        <a class="nav-link {% if request.path|slice:':11' == '/snapshots/' %}is-active{% endif %}"
+           href="{% url 'snapshots:history' %}">Snapshots</a>
+        <a class="nav-link {% if '/tracker/today' in request.path %}is-active{% endif %}"
+           href="{% url 'tracker:today' %}">Today</a>
+
+        {# ✅ Exports hub page #}
+        <a class="nav-link {% if '/exports/' in request.path %}is-active{% endif %}"
+           href="{% url 'exports:index' %}">Exports</a>
+
+        <a class="nav-link" href="/admin/">Admin</a>
+      </nav>
+
+      <!-- Mobile nav -->
+      <details class="nav-more">
+        <summary class="btn-mini" aria-label="Open navigation">Menu ▾</summary>
+        <div class="nav-more-menu">
+          <a class="nav-link {% if request.path == '/' %}is-active{% endif %}" href="{% url 'dashboard:home' %}">Dashboard</a>
+          <a class="nav-link {% if '/history/' in request.path and '/snapshots/' not in request.path %}is-active{% endif %}" href="{% url 'dashboard:history' %}">History + Trend</a>
+          <a class="nav-link {% if request.path|slice:':11' == '/snapshots/' %}is-active{% endif %}" href="{% url 'snapshots:history' %}">Snapshots</a>
+          <a class="nav-link {% if '/tracker/today' in request.path %}is-active{% endif %}" href="{% url 'tracker:today' %}">Today</a>
+          <a class="nav-link {% if '/tracker/sessions/new' in request.path %}is-active{% endif %}" href="{% url 'tracker:session_new' %}">Quick Add</a>
+
+          {# ✅ Exports hub page #}
+          <a class="nav-link {% if '/exports/' in request.path %}is-active{% endif %}" href="{% url 'exports:index' %}">Exports</a>
+
+          <a class="nav-link" href="/admin/">Admin</a>
+        </div>
+      </details>
+
+      <!-- Right side -->
+      <div class="nav-right">
+        <div class="nav-actions">
+          {# optional primary action slot (override per page) #}
+          {% block nav_primary_action %}{% endblock %}
+        </div>
+
+        {% if now_local %}
+          <span class="chip">London: {{ now_local|date:"D d M" }} · {{ now_local|time:"H:i" }}</span>
+        {% endif %}
+      </div>
+
+    </div>
+  </header>
+
+  <main class="app-main">
+    <div class="wrap">
+
+      {% if messages %}
+        <div class="stack gap-10 mb-14">
+          {% for m in messages %}
+            <div class="alert {% if m.tags %}alert-{{ m.tags }}{% else %}alert-info{% endif %}">
+              {{ m }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  {% block footer %}
+    <footer class="app-footer">
+      <div class="wrap">
+        <div class="footer-inner">
+          <div class="footer-left">
+            <strong>GoalTracker</strong>
+            <span class="muted">Data-Analyst-first</span>
+            {% if goal %}
+              <span class="dot-sep">•</span>
+              <span class="muted">Active:</span> <strong>{{ goal.name }}</strong>
+            {% endif %}
+          </div>
+          <div class="footer-right">
+            {% block app_version %}
+              <span class="muted">v1</span>
+            {% endblock %}
+          </div>
+        </div>
+      </div>
+    </footer>
+  {% endblock %}
+
+  {% block page_js %}{% endblock %}
+</body>
+</html>

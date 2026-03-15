@@ -1,0 +1,350 @@
+{# templates/tracker/today.html #}
+{% extends "base.html" %}
+{% load static tz %}
+
+{% block title %}Today | GoalTracker{% endblock %}
+{% block body_class %}app-body tracker-page{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{% static 'css/tracker.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Today</h1>
+    {% if now_local %}
+      <div class="page-meta">London: <strong>{{ now_local|date:"d M Y H:i" }}</strong></div>
+    {% endif %}
+  </div>
+
+  <div class="inline-actions">
+    <a class="btn btn-ghost" href="{% url 'dashboard:home' %}">Dashboard</a>
+
+    {% if day_boundary_blocked %}
+      <a class="btn btn-ghost disabled" aria-disabled="true" title="End Day, then Start Day for today to enable Quick Add">
+        Quick Add
+      </a>
+    {% else %}
+      <a class="btn btn-ghost" href="{% url 'tracker:session_new' %}">Quick Add</a>
+    {% endif %}
+
+    <a class="btn btn-ghost" href="{% url 'snapshots:history' %}">Snapshots</a>
+  </div>
+</div>
+
+{% if error %}
+  <div class="alert alert-danger mt-14">{{ error }}</div>
+{% endif %}
+
+<div class="grid mt-14">
+
+  <div class="card span-12">
+    <h2 class="h2">Day</h2>
+    <div class="hr"></div>
+
+    {% if day_boundary_blocked and active_day and active_day.wake_at %}
+      <div class="alert alert-warning mt-10">
+        Your day is still open from <strong>{{ active_day.wake_at|localtime|date:"d M Y" }}</strong>.
+        End Day to close it, then Start Day for today.
+      </div>
+    {% endif %}
+
+    <div class="form-grid two">
+      <div class="field">
+        <div class="mini">Status</div>
+        <div>
+          {% if day_is_open %}
+            {% if day_boundary_blocked %}
+              <strong>Open (previous day)</strong>
+            {% else %}
+              <strong>Open</strong>
+            {% endif %}
+
+            {% if active_day and active_day.wake_at %}
+              <span class="mini">
+                · Wake: {{ active_day.wake_at|localtime|date:"d M Y H:i" }}
+              </span>
+            {% endif %}
+          {% else %}
+            <strong>Closed</strong>
+            {% if active_day and active_day.sleep_at %}
+              <span class="mini">
+                · Sleep: {{ active_day.sleep_at|localtime|date:"d M Y H:i" }}
+              </span>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="field field-actions">
+        {% if not day_is_open %}
+          <form method="post" action="{% url 'tracker:start_day' %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-success">Start Day</button>
+          </form>
+        {% else %}
+          {# Make the top-right control a “jump to end-day panel”, not a second submit #}
+          {% if end_day_disabled %}
+            <a class="btn btn-outline-danger disabled"
+               aria-disabled="true"
+               title="Stop + Save (or clear) the timer before ending the day">
+              End Day
+            </a>
+          {% else %}
+            <a class="btn btn-outline-danger" href="#endday">End Day</a>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+
+    {% if day_is_open %}
+      <div class="hr"></div>
+
+      <form id="endDayForm" method="post" action="{% url 'tracker:end_day' %}">
+        {% csrf_token %}
+
+        {# End-day reflection panel (2-column, fixes “giant red bar”) #}
+        <div class="endday-panel" id="endday">
+          <div class="stack gap-10">
+            <div class="endday-head">
+              <div class="mini">
+                End-day reflection <span class="sub">(optional)</span>
+              </div>
+              <div class="mini">
+                Press <span class="kbd">R</span> to jump here
+              </div>
+            </div>
+
+            <label class="sr-only" for="reflectionInput">End-day reflection</label>
+            <textarea
+              id="reflectionInput"
+              name="reflection"
+              class="input"
+              rows="2"
+              maxlength="200"
+              placeholder="What moved the needle today? (optional)"
+              {% if end_day_disabled %}disabled{% endif %}
+            >{{ reflection|default_if_none:"" }}</textarea>
+          </div>
+
+          <div class="endday-cta">
+            <button class="btn btn-danger"
+                    type="submit"
+                    {% if end_day_disabled %}disabled{% endif %}>
+              End Day
+            </button>
+            <div class="hint mt-8">You can’t undo this after ending the day.</div>
+          </div>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+
+  <div class="card span-12">
+    <h2 class="h2">Timer</h2>
+    <div class="hr"></div>
+
+    {% if day_boundary_blocked and active_day and active_day.wake_at %}
+      <div class="alert alert-warning mt-10">
+        Timer actions are restricted because the open day belongs to <strong>{{ active_day.wake_at|localtime|date:"d M Y" }}</strong>.
+        You can still use <strong>Stop + Save</strong> to close any running/paused timer (it will clamp to midnight),
+        then End Day and Start Day for today.
+      </div>
+    {% endif %}
+
+    {% if timer_crossed_midnight %}
+      <div class="alert alert-warning mt-10">
+        This timer crossed midnight (London). <strong>Pause</strong> is disabled.
+        Use <strong>Stop + Save</strong> to close it (it will clamp to midnight), then start a new timer today.
+      </div>
+    {% endif %}
+
+    <div class="form-grid two">
+      <div class="field">
+        <div class="mini">State</div>
+        <div>
+          {% if timer_is_running %}
+            <strong>Running</strong>
+          {% elif timer_is_paused %}
+            <strong>Paused</strong>
+          {% else %}
+            <strong>Not running</strong>
+          {% endif %}
+
+          {% if timer and timer.category %}
+            <span class="mini"> · Category: {{ timer.category.name }}</span>
+          {% endif %}
+
+          {% if timer_is_paused %}
+            <span class="mini"> · Paused: {{ timer.accumulated_minutes }} min</span>
+          {% endif %}
+        </div>
+
+        {% if not day_is_open %}
+          <div class="mini mt-10">Start Day to enable timer controls.</div>
+        {% endif %}
+      </div>
+
+      <div class="field field-actions">
+        <div class="inline-actions">
+
+          <form method="post" action="{% url 'tracker:timer_start' %}" class="timer-start-form">
+            {% csrf_token %}
+
+            <div class="timer-start-fields">
+              <select id="timerCategory"
+                      name="category"
+                      class="form-select"
+                      required
+                      {% if timer_fields_disabled %}disabled{% endif %}>
+                <option value="" disabled {% if not timer or not timer.category_id %}selected{% endif %}>— Select category —</option>
+                {% for c in categories %}
+                  <option value="{{ c.id }}" {% if timer and timer.category_id == c.id %}selected{% endif %}>
+                    {{ c.name }}
+                  </option>
+                {% endfor %}
+              </select>
+
+              <select id="timerQuality"
+                      name="quality_level"
+                      class="form-select"
+                      {% if timer_fields_disabled %}disabled{% endif %}>
+                <option value="standard" {% if not timer or not timer.quality_level or timer.quality_level == "standard" %}selected{% endif %}>Standard (1.0x)</option>
+                <option value="strong" {% if timer and timer.quality_level == "strong" %}selected{% endif %}>Strong (1.5x)</option>
+                <option value="high" {% if timer and timer.quality_level == "high" %}selected{% endif %}>High (2.0x)</option>
+                <option value="exceptional" {% if timer and timer.quality_level == "exceptional" %}selected{% endif %}>Exceptional (3.0x)</option>
+              </select>
+
+              <input id="timerDeliverable"
+                     type="text"
+                     name="deliverable"
+                     class="input"
+                     placeholder="Deliverable (required for Exceptional)"
+                     value="{% if timer and timer.deliverable %}{{ timer.deliverable }}{% endif %}"
+                     {% if timer_fields_disabled %}disabled{% endif %}>
+            </div>
+
+            <div class="inline-actions">
+              <button class="btn btn-success" type="submit" {% if not can_start %}disabled{% endif %}>
+                Start
+              </button>
+
+              <button class="btn btn-primary"
+                      type="submit"
+                      formaction="{% url 'tracker:timer_stop' %}"
+                      {% if not can_stop %}disabled{% endif %}>
+                Stop + Save
+              </button>
+            </div>
+          </form>
+
+          <form method="post" action="{% url 'tracker:timer_pause' %}">
+            {% csrf_token %}
+            <button class="btn btn-ghost" type="submit" {% if not can_pause %}disabled{% endif %}>
+              Pause
+            </button>
+          </form>
+
+          <form method="post" action="{% url 'tracker:timer_resume' %}">
+            {% csrf_token %}
+            <button class="btn btn-ghost" type="submit" {% if not can_resume %}disabled{% endif %}>
+              Resume
+            </button>
+          </form>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="mini mt-14">
+      Tip: If you need full session details (deliverable, times), use
+      <a href="{% url 'tracker:session_new' %}">Quick Add</a>.
+    </div>
+  </div>
+
+  <div class="card span-12">
+    <h2 class="h2">Today’s sessions</h2>
+    <div class="hr"></div>
+
+    <div class="sub">Times shown in London</div>
+
+    <div class="table-wrap mt-14">
+      <table class="table">
+        <thead>
+          <tr>
+            <th class="right">Start</th>
+            <th class="right">End</th>
+            <th>Category</th>
+            <th>Quality</th>
+            <th class="right">Raw</th>
+            <th class="right">Effective</th>
+            <th>Deliverable</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in sessions %}
+            <tr>
+              <td class="right">{% if s.start_at %}{{ s.start_at|localtime|date:"H:i" }}{% else %}—{% endif %}</td>
+              <td class="right">{% if s.end_at %}{{ s.end_at|localtime|date:"H:i" }}{% else %}—{% endif %}</td>
+              <td>{% if s.category %}{{ s.category.name }}{% else %}—{% endif %}</td>
+              <td>{{ s.quality_level|default:"—"|title }}</td>
+              <td class="right">{{ s.duration_minutes }}m</td>
+              <td class="right">{{ s.effective_minutes }}m</td>
+              <td>{{ s.deliverable|default_if_none:"-"|default:"-" }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7">No sessions yet today.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block page_js %}
+<script>
+  (function () {
+    "use strict";
+
+    function isTypingTarget(e){
+      var t = e.target;
+      if (!t) return false;
+      var tag = (t.tagName || "").toLowerCase();
+      return tag === "input" || tag === "textarea" || tag === "select" || t.isContentEditable || e.isComposing;
+    }
+
+    // R jumps to reflection (scroll + focus)
+    document.addEventListener("keydown", function (e) {
+      if (isTypingTarget(e)) return;
+      if (e.key !== "r" && e.key !== "R") return;
+
+      var endday = document.getElementById("endday");
+      var el = document.getElementById("reflectionInput");
+
+      if (endday) endday.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (el && !el.disabled) el.focus();
+
+      e.preventDefault();
+    });
+
+    // Deliverable required only for Exceptional
+    var q = document.getElementById("timerQuality");
+    var d = document.getElementById("timerDeliverable");
+    function syncDeliverableReq() {
+      if (!q || !d) return;
+      d.required = (q.value === "exceptional");
+    }
+    if (q) {
+      q.addEventListener("change", syncDeliverableReq);
+      syncDeliverableReq();
+    }
+  })();
+</script>
+{% endblock %}

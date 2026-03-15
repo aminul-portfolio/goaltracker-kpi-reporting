@@ -1,0 +1,105 @@
+{# templates/tracker/session_new.html #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Quick Add Session | GoalTracker{% endblock %}
+{% block body_class %}app-body tracker-page{% endblock %}
+
+{% block page_css %}
+  <link rel="stylesheet" href="{% static 'css/tracker.css' %}">
+{% endblock %}
+
+{% block content %}
+
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Quick Add Session</h1>
+      {% if now_local %}
+        <div class="page-meta">Now: <strong>{{ now_local|date:"d M Y H:i" }}</strong></div>
+      {% endif %}
+      <div class="mini" style="margin-top:6px; opacity:.85">
+        Rule: sessions cannot cross midnight while a day is open.
+      </div>
+    </div>
+
+    <div class="inline-actions">
+      <a class="btn btn-ghost" href="{% url 'tracker:today' %}">Back to Today</a>
+      <a class="btn btn-ghost" href="{% url 'dashboard:home' %}">Dashboard</a>
+    </div>
+  </div>
+
+  {# If the view renders this template without a form (e.g. no active goal), show only the error. #}
+  {% if not form %}
+    {% if error %}
+      <div class="alert alert-danger mt-14">{{ error }}</div>
+    {% endif %}
+  {% else %}
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger mt-14">
+        {% for e in form.non_field_errors %}
+          <div>{{ e }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if error %}
+      <div class="alert alert-danger mt-14">{{ error }}</div>
+    {% endif %}
+
+    <div class="card mt-14">
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="form-grid two">
+          <div class="field">
+            <label class="form-label">Category</label>
+            {{ form.category }}
+            {% for e in form.category.errors %}<div class="mini" style="color: var(--red)">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="field">
+            <label class="form-label">Quality level</label>
+            {{ form.quality_level }}
+            {% for e in form.quality_level.errors %}<div class="mini" style="color: var(--red)">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+
+        <div class="form-grid two mt-14">
+          <div class="field">
+            <label class="form-label">Start</label>
+            {{ form.start_at }}
+            {% for e in form.start_at.errors %}<div class="mini" style="color: var(--red)">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="field">
+            <label class="form-label">End</label>
+            {{ form.end_at }}
+            {% for e in form.end_at.errors %}<div class="mini" style="color: var(--red)">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+
+        <div class="form-grid mt-14">
+          <div class="field">
+            <label class="form-label">Deliverable (required for Exceptional)</label>
+            {{ form.deliverable }}
+            {% for e in form.deliverable.errors %}<div class="mini" style="color: var(--red)">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="field">
+            <label class="form-label">Notes (optional)</label>
+            {{ form.notes }}
+            {% for e in form.notes.errors %}<div class="mini" style="color: var(--red)">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+
+        <div class="inline-actions mt-14">
+          <button class="btn btn-primary" type="submit">Save Session</button>
+          <a class="btn btn-ghost" href="{% url 'tracker:today' %}">Cancel</a>
+        </div>
+      </form>
+    </div>
+
+  {% endif %}
+
+{% endblock %}

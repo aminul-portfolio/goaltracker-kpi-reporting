@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Exports | GoalTracker{% endblock %}
+{% block body_class %}app-body exports-page{% endblock %}
+
+{% block content %}
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Exports</h1>
+      <div class="page-meta">
+        Download datasets for analysis and Power BI. Contract: <strong>{{ export_contract }}</strong>
+        {% if goal %} · Active Goal: <strong>{{ goal.name }}</strong>{% endif %}
+      </div>
+    </div>
+
+    <div class="page-actions">
+      <a class="btn btn-outline-primary" href="{% url 'exports:fact_sessions_v2_csv' %}">Download fact_sessions (v2)</a>
+      <a class="btn btn-outline-dark" href="{% url 'exports:sessions_csv' %}">Download sessions (v1)</a>
+    </div>
+  </div>
+
+  <div class="grid mt-14">
+    <section class="card span-12">
+      <h2 style="margin:0 0 10px">Power BI (v2) — Recommended</h2>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Dataset</th>
+              <th>Purpose</th>
+              <th class="right">Link</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>fact_sessions</strong></td>
+              <td>Session fact table (hours, effective mins, quality, work items)</td>
+              <td class="right"><a class="nav-link" href="{% url 'exports:fact_sessions_v2_csv' %}">Download</a></td>
+            </tr>
+            <tr>
+              <td><strong>dim_date</strong></td>
+              <td>Date dimension for time intelligence</td>
+              <td class="right"><a class="nav-link" href="{% url 'exports:dim_date_v2_csv' %}">Download</a></td>
+            </tr>
+            <tr>
+              <td><strong>dim_goal</strong></td>
+              <td>Goal dimension</td>
+              <td class="right"><a class="nav-link" href="{% url 'exports:dim_goal_v2_csv' %}">Download</a></td>
+            </tr>
+            <tr>
+              <td><strong>dim_category</strong></td>
+              <td>Category dimension</td>
+              <td class="right"><a class="nav-link" href="{% url 'exports:dim_category_v2_csv' %}">Download</a></td>
+            </tr>
+            <tr>
+              <td><strong>dim_work_item</strong></td>
+              <td>Work item dimension (delivery proof)</td>
+              <td class="right"><a class="nav-link" href="{% url 'exports:dim_work_item_v2_csv' %}">Download</a></td>
+            </tr>
+            <tr>
+              <td><strong>sprint_settings</strong></td>
+              <td>Sprint start + days (Power Query uses this)</td>
+              <td class="right"><a class="nav-link" href="{% url 'exports:sprint_settings_v2_csv' %}">Download</a></td>
+            </tr>
+            <tr>
+              <td><strong>dim_tag_group</strong></td>
+              <td>Tag group dimension (optional slicing)</td>
+              <td class="right"><a class="nav-link" href="{% url 'exports:dim_tag_group_v2_csv' %}">Download</a></td>
+            </tr>
+            <tr>
+              <td><strong>dim_tag</strong></td>
+              <td>Tags dimension (optional slicing)</td>
+              <td class="right"><a class="nav-link" href="{% url 'exports:dim_tag_v2_csv' %}">Download</a></td>
+            </tr>
+            <tr>
+              <td><strong>bridge_session_tag</strong></td>
+              <td>Bridge table (Session ↔ Tag) for many-to-many</td>
+              <td class="right"><a class="nav-link" href="{% url 'exports:bridge_session_tag_v2_csv' %}">Download</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-14 hint">
+        Power BI: <strong>Get Data → Web</strong> → paste CSV URLs. Build relationships on <strong>exports.v2</strong>.
+      </div>
+    </section>
+
+    <section class="card span-12">
+      <h2 style="margin:0 0 10px">Legacy (v1)</h2>
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <a class="btn btn-outline-dark" href="{% url 'exports:sessions_csv' %}">sessions.csv</a>
+        <a class="btn btn-outline-dark" href="{% url 'exports:day_snapshots_csv' %}">day_snapshots.csv</a>
+      </div>
+
+      <div class="mt-14">
+        <div class="mini">Scope filters (v1)</div>
+        <div class="hint">
+          Examples:
+          <div class="mt-8">
+            <code>/exports/sessions.csv?scope=week</code><br>
+            <code>/exports/sessions.csv?start=2026-02-01&end=2026-02-06</code><br>
+            <code>/exports/sessions.csv?scope=month&category=3</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card span-12">
+      <h2 style="margin:0 0 10px">Quick Checks</h2>
+      <ul style="margin:0; padding-left:18px">
+        <li>Exports require <strong>staff login</strong>.</li>
+        <li>If a dataset is empty, ensure an <strong>active goal</strong> exists and you have sessions logged.</li>
+        <li>Power BI model: <strong>fact_sessions</strong> + dims + bridge (tags).</li>
+      </ul>
+    </section>
+  </div>
+{% endblock %}

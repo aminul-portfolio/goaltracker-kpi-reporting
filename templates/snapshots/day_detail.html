@@ -1,0 +1,120 @@
+{# templates/snapshots/day_detail.html #}
+{% extends "base.html" %}
+{% load static tz %}
+
+{% block title %}Day Snapshot · GoalTracker{% endblock %}
+{% block body_class %}app-body snapshots-page{% endblock %}
+
+{% block page_css %}
+  <link rel="stylesheet" href="{% static 'css/snapshots.css' %}">
+{% endblock %}
+
+{% block content %}
+
+  <div class="snap-head">
+    <div>
+      <h1 class="snap-title">Day Snapshot</h1>
+      {% if snap %}
+        <div class="muted">
+          {{ snap.day_key|date:"d M Y" }} · Rating: <strong>{{ snap.rating }}</strong>
+        </div>
+      {% endif %}
+    </div>
+    <div class="snap-links">
+      <a class="btn btn-ghost" href="{% url 'snapshots:history' %}">Back</a>
+      <a class="btn btn-ghost" href="{% url 'tracker:today' %}">Today</a>
+      <a class="btn btn-ghost" href="{% url 'dashboard:home' %}">Dashboard</a>
+    </div>
+  </div>
+
+  {% if error %}
+    <section class="card mt-14">
+      <h2>Error</h2>
+      <p class="muted">{{ error }}</p>
+    </section>
+  {% endif %}
+
+  {% if snap %}
+    <section class="grid mt-14">
+
+      <div class="card span-12">
+        <h2>Summary</h2>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="lbl">Scope (calendar day)</div>
+            <div class="val">
+              {% if scope_start_at %}{{ scope_start_at|localtime|date:"d M Y H:i" }}{% else %}—{% endif %}
+              →
+              {% if scope_end_at %}{{ scope_end_at|localtime|date:"d M Y H:i" }}{% else %}—{% endif %}
+            </div>
+            <div class="mini">
+              Sessions: {{ snap.sessions_count }} · Exceptional: {{ snap.exceptional_count }}
+            </div>
+          </div>
+
+          <div class="kpi">
+            <div class="lbl">Raw</div>
+            <div class="val">{{ snap.raw_minutes }}m</div>
+            <div class="mini">{{ snap.raw_pct }}%</div>
+          </div>
+
+          <div class="kpi">
+            <div class="lbl">Effective</div>
+            <div class="val">{{ snap.effective_minutes }}m</div>
+            <div class="mini">{{ snap.effective_pct }}%</div>
+          </div>
+
+          <div class="kpi">
+            <div class="lbl">Reflection</div>
+            <div class="val">{{ snap.reflection|default_if_none:"—"|default:"—" }}</div>
+          </div>
+        </div>
+
+        <div class="mini mt-14" style="opacity:.8">
+          Stored wake/sleep (optional):
+          {% if snap.wake_at %}{{ snap.wake_at|localtime|date:"H:i" }}{% else %}—{% endif %}
+          → {% if snap.sleep_at %}{{ snap.sleep_at|localtime|date:"H:i" }}{% else %}—{% endif %}
+        </div>
+      </div>
+
+      <div class="card span-12">
+        <h2>Sessions</h2>
+        <div class="sub">Times shown in London</div>
+
+        <div class="table-wrap mt-14">
+          <table class="table">
+            <thead>
+              <tr>
+                <th class="right">Start</th>
+                <th class="right">End</th>
+                <th>Category</th>
+                <th>Quality</th>
+                <th class="right">Raw</th>
+                <th class="right">Effective</th>
+                <th>Deliverable</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in sessions %}
+                <tr>
+                  <td class="right">{% if s.start_at %}{{ s.start_at|localtime|date:"H:i" }}{% else %}—{% endif %}</td>
+                  <td class="right">{% if s.end_at %}{{ s.end_at|localtime|date:"H:i" }}{% else %}—{% endif %}</td>
+                  <td>{% if s.category %}{{ s.category.name }}{% else %}—{% endif %}</td>
+                  <td>{{ s.quality_level|default:"—"|title }}</td>
+                  <td class="right">{{ s.duration_minutes }}m</td>
+                  <td class="right">{{ s.effective_minutes }}m</td>
+                  <td>{{ s.deliverable|default_if_none:"-"|default:"-" }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="7">No sessions for this calendar day.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+  {% endif %}
+
+{% endblock %}

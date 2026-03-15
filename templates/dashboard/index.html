@@ -1,0 +1,376 @@
+{# templates/dashboard/index.html #}
+{% extends "base.html" %}
+{% load static tz %}
+
+{% block title %}Dashboard | GoalTracker{% endblock %}
+{% block body_class %}app-body dashboard-page{% endblock %}
+
+{% block page_css %}
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Dashboard</h1>
+      {% if goal %}
+        <div class="page-meta">
+          Goal: <strong>{{ goal.name }}</strong>
+          {% if now_local %} · Now (London): {{ now_local|date:"d M Y H:i" }}{% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="page-actions" aria-label="Dashboard actions">
+      <a class="btn btn-ghost" href="{% url 'tracker:today' %}">Today</a>
+      <a class="btn btn-ghost" href="{% url 'tracker:session_new' %}">Quick Add</a>
+      <a class="btn btn-ghost" href="{% url 'dashboard:history' %}">History + Trend</a>
+    </div>
+  </div>
+
+  {% if error %}
+    <section class="card mt-14">
+      <h2>Error</h2>
+      <p class="muted">{{ error }}</p>
+    </section>
+  {% else %}
+
+    {# TODAY STRIP #}
+    <section class="card mt-14">
+      <div class="card-head">
+        <div>
+          <h2>Today</h2>
+          <p class="sub">Live status + daily totals</p>
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi">
+          <div class="lbl">Day</div>
+          <div class="val">
+            {% if day_is_open %}
+              <span class="badge ok"><span class="dot"></span>Open</span>
+            {% else %}
+              <span class="badge warn"><span class="dot"></span>Closed</span>
+            {% endif %}
+          </div>
+          <div class="sub">
+            Wake:
+            {% if active_day and active_day.wake_at %}
+              {{ active_day.wake_at|localtime|date:"d M Y H:i" }}
+            {% else %}
+              —
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="kpi">
+          <div class="lbl">Raw</div>
+          <div class="val">{{ day_raw }}m</div>
+          <div class="sub">{{ day_raw_h }} h</div>
+          {% if day_raw_bar is not None %}
+            <div class="bar"><div class="fill" style="width: {{ day_raw_bar }}%;"></div></div>
+          {% endif %}
+        </div>
+
+        <div class="kpi">
+          <div class="lbl">Effective</div>
+          <div class="val">{{ day_eff }}m</div>
+          <div class="sub">{{ day_eff_h }} h</div>
+          {% if day_eff_bar is not None %}
+            <div class="bar"><div class="fill green" style="width: {{ day_eff_bar }}%;"></div></div>
+          {% endif %}
+        </div>
+
+        <div class="kpi">
+          <div class="lbl">Daily target</div>
+          <div class="val">{{ daily_target }}m</div>
+          <div class="sub">
+            {% if day_eff_pct is not None %}{{ day_eff_pct }}%{% endif %}
+            {% if day_gain_h is not None %} · Gain: +{{ day_gain_h }} h{% endif %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {# STATUS + ACTIONS #}
+    <section class="card mt-14">
+      <div class="card-head">
+        <div>
+          <h2>Status</h2>
+          <p class="sub">Day state, timer state, on-track signals, and end-day actions.</p>
+        </div>
+      </div>
+
+      <div class="kpis">
+
+        {# DAY #}
+        <div class="kpi">
+          <div class="lbl">Day</div>
+          <div class="kpi-row">
+            <div class="val">
+              {% if day_is_open %}
+                <span class="badge ok"><span class="dot"></span>Open</span>
+              {% else %}
+                <span class="badge warn"><span class="dot"></span>Closed</span>
+              {% endif %}
+            </div>
+            <div class="mini">
+              {% if active_day and active_day.wake_at %}
+                Wake: {{ active_day.wake_at|localtime|date:"d M Y H:i" }}
+              {% else %}
+                Wake: —
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="actions mt-10">
+            {% if day_is_open %}
+              <a class="btn btn-ghost" href="{% url 'tracker:today' %}">Go to Today</a>
+            {% else %}
+              <form method="post" action="{% url 'tracker:start_day' %}">
+                {% csrf_token %}
+                <button class="btn btn-primary" type="submit">Start Day</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+
+        {# TIMER #}
+        <div class="kpi">
+          <div class="lbl">Timer</div>
+          <div class="kpi-row">
+            <div class="val">
+              {% if timer_is_running %}
+                <span class="badge ok"><span class="dot"></span>Running</span>
+              {% else %}
+                <span class="badge warn"><span class="dot"></span>Not running</span>
+              {% endif %}
+            </div>
+            <div class="mini">
+              {% if timer and timer.category %}{{ timer.category.name }}{% else %}—{% endif %}
+            </div>
+          </div>
+
+          <div class="actions mt-10">
+            <a class="btn btn-ghost" href="{% url 'tracker:today' %}">Timer controls</a>
+            <a class="btn btn-ghost" href="{% url 'tracker:session_new' %}">Quick Add</a>
+          </div>
+        </div>
+
+        {# ON-TRACK #}
+        <div class="kpi">
+          <div class="lbl">On-track signals</div>
+
+          <div class="kpi-row mb-8">
+            <div class="mini">30-day pace vs target</div>
+            {% if on_track_30 %}
+              <span class="badge ok"><span class="dot"></span>On track</span>
+            {% else %}
+              <span class="badge bad"><span class="dot"></span>Behind</span>
+            {% endif %}
+          </div>
+          <div class="mini mb-10">Delta: {{ pace_delta_30_h }} h/day (positive = need more)</div>
+
+          <div class="kpi-row mb-8">
+            <div class="mini">Week pace vs target</div>
+            {% if on_track_week %}
+              <span class="badge ok"><span class="dot"></span>On track</span>
+            {% else %}
+              <span class="badge bad"><span class="dot"></span>Behind</span>
+            {% endif %}
+          </div>
+          <div class="mini">Delta: {{ pace_delta_week_h }} h/day (positive = need more)</div>
+        </div>
+
+        {# END DAY #}
+        <div class="kpi">
+          <div class="lbl">End Day</div>
+
+          {% if day_is_open %}
+            <div class="mini mb-8">Option A: End immediately (no reflection)</div>
+
+            <form method="post" action="{% url 'tracker:end_day' %}" class="mb-10">
+              {% csrf_token %}
+              <input type="hidden" name="reflection" value="">
+              <button class="btn btn-danger" type="submit">End Day Now</button>
+            </form>
+
+            <div class="mini mb-8">Option B: End + add reflection (1–2 lines)</div>
+            <form method="post" action="{% url 'tracker:end_day' %}">
+              {% csrf_token %}
+              <input class="input" type="text" name="reflection" maxlength="200"
+                     placeholder="What moved the needle today? (optional)">
+              <button class="btn btn-danger mt-10" type="submit">End Day + Add reflection</button>
+            </form>
+
+            <div class="hint mt-10">
+              Tip: You can also go to <a href="{% url 'tracker:today' %}">Today</a> and press <strong>R</strong>.
+            </div>
+          {% else %}
+            <div class="mini">Day is closed — start the day to enable end-day actions.</div>
+          {% endif %}
+        </div>
+
+      </div>
+    </section>
+
+    {# PERFORMANCE SECTIONS #}
+    <section class="grid mt-14">
+
+      {# GOAL WINDOW #}
+      <div class="card span-12">
+        <h2>{{ goal.duration_days|default:30 }}-Day Window (Goal)</h2>
+        <div class="sub">{{ window_start_local|date:"d M Y" }} → {{ window_end_local|date:"d M Y" }}</div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="lbl">Days</div>
+            <div class="val">
+              {{ days_elapsed }} / {{ goal.duration_days|default:30 }}
+              <span class="pill">days left: {{ days_left_30 }}</span>
+            </div>
+          </div>
+
+          <div class="kpi">
+            <div class="lbl">Target</div>
+            <div class="val">{{ win_target_h }} h <span class="mini">({{ win_target }} min)</span></div>
+          </div>
+
+          <div class="kpi">
+            <div class="lbl">Raw progress</div>
+            <div class="kpi-row">
+              <div class="val">{{ win_raw_h }} h</div>
+              <div class="mini">{{ win_raw_pct }}%</div>
+            </div>
+            <div class="bar"><div class="fill" style="width: {{ win_raw_bar }}%;"></div></div>
+            <div class="mini mt-8">
+              Remaining (raw): {{ win_remaining_raw_h }} h · Required/day: {{ win_required_per_day_h }} h/day
+            </div>
+          </div>
+
+          <div class="kpi">
+            <div class="lbl">Effective progress</div>
+            <div class="kpi-row">
+              <div class="val">{{ win_eff_h }} h</div>
+              <div class="mini">{{ win_eff_pct }}%</div>
+            </div>
+            <div class="bar"><div class="fill green" style="width: {{ win_eff_bar }}%;"></div></div>
+            <div class="mini mt-8">Gain: +{{ win_gain_h }} h</div>
+          </div>
+        </div>
+      </div>
+
+      {# THIS WEEK #}
+      <div class="card span-12">
+        <h2>This Week</h2>
+        <div class="sub">{{ week_start_local|date:"d M" }} → {{ week_end_local|date:"d M" }}</div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="lbl">Raw</div>
+            <div class="kpi-row">
+              <div class="val">{{ week_raw_h }} h</div>
+              <div class="mini">{{ week_raw_pct }}%</div>
+            </div>
+            <div class="bar"
+                 role="progressbar"
+                 aria-label="Weekly raw progress"
+                 aria-valuemin="0"
+                 aria-valuemax="100"
+                 aria-valuenow="{{ week_raw_bar|default:0 }}">
+              <div class="fill" style="width: {{ week_raw_bar }}%;"></div>
+            </div>
+            <div class="mini mt-8">Remaining (raw): {{ week_remaining_raw_h }} h · Required/day: {{ week_required_per_day_h }} h/day</div>
+          </div>
+
+          <div class="kpi">
+            <div class="lbl">Effective</div>
+            <div class="kpi-row">
+              <div class="val">{{ week_eff_h }} h</div>
+              <div class="mini">{{ week_eff_pct }}%</div>
+            </div>
+            <div class="bar"><div class="fill green" style="width: {{ week_eff_bar }}%;"></div></div>
+            <div class="mini mt-8">Gain: +{{ week_gain_h }} h</div>
+          </div>
+
+          <div class="kpi">
+            <div class="lbl">Weekly target</div>
+            <div class="val">{{ weekly_target_h }} h</div>
+            <div class="mini">Based on daily target × 7</div>
+          </div>
+        </div>
+      </div>
+
+      {# THIS MONTH #}
+      <div class="card span-12">
+        <h2>This Month</h2>
+        <div class="sub">{{ month_start_local|date:"d M Y" }} → {{ month_end_local|date:"d M Y" }}</div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="lbl">Raw</div>
+            <div class="kpi-row">
+              <div class="val">{{ month_raw_h }} h</div>
+              <div class="mini">{{ month_raw_pct }}%</div>
+            </div>
+            <div class="bar"><div class="fill" style="width: {{ month_raw_bar }}%;"></div></div>
+            <div class="mini mt-8">Remaining (raw): {{ month_remaining_raw_h }} h · Required/day: {{ month_required_per_day_h }} h/day</div>
+          </div>
+
+          <div class="kpi">
+            <div class="lbl">Effective</div>
+            <div class="kpi-row">
+              <div class="val">{{ month_eff_h }} h</div>
+              <div class="mini">{{ month_eff_pct }}%</div>
+            </div>
+            <div class="bar"><div class="fill green" style="width: {{ month_eff_bar }}%;"></div></div>
+            <div class="mini mt-8">Gain: +{{ month_gain_h }} h</div>
+          </div>
+
+          <div class="kpi">
+            <div class="lbl">Monthly target</div>
+            <div class="val">{{ monthly_target_h }} h</div>
+            <div class="mini">From goal.monthly_target_minutes (or default)</div>
+          </div>
+        </div>
+      </div>
+
+      {# CATEGORY BREAKDOWN #}
+      <div class="card span-12">
+        <h2>Top Categories (Goal Window)</h2>
+        <div class="sub">Sorted by Effective Hours + share of total effective</div>
+
+        <div class="table-wrap">
+          <table class="table">
+            <caption class="sr-only">Top Categories</caption>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th class="right">Effective</th>
+                <th class="right">Share</th>
+                <th class="right">Raw</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in top_cats_30 %}
+                <tr>
+                  <td>{{ c.name }}</td>
+                  <td class="right">{{ c.eff_h }} h <span class="mini">({{ c.eff_min }} min)</span></td>
+                  <td class="right">{{ c.share_pct }}%</td>
+                  <td class="right">{{ c.raw_h }} h <span class="mini">({{ c.raw_min }} min)</span></td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4">No sessions in the goal window yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  {% endif %}
+
+{% endblock %}

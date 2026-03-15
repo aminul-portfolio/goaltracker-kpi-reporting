@@ -1,0 +1,75 @@
+{# templates/snapshots/week_detail.html #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Week Snapshot · GoalTracker{% endblock %}
+{% block body_class %}app-body snapshots-page{% endblock %}
+
+{% block page_css %}
+  <link rel="stylesheet" href="{% static 'css/snapshots.css' %}">
+{% endblock %}
+
+{% block content %}
+
+  <div class="snap-head">
+    <div>
+      <h1 class="snap-title">Week Snapshot</h1>
+      {% if snap %}
+        <div class="muted">
+          {{ snap.week_start|date:"d M Y" }} → {{ snap.week_end_inclusive|date:"d M Y" }}
+          · Rating: <strong>{{ snap.rating }}</strong>
+        </div>
+      {% endif %}
+    </div>
+    <div class="snap-links">
+      <a class="btn btn-ghost" href="{% url 'snapshots:history' %}">Back</a>
+      <a class="btn btn-ghost" href="{% url 'tracker:today' %}">Today</a>
+      <a class="btn btn-ghost" href="{% url 'dashboard:home' %}">Dashboard</a>
+    </div>
+  </div>
+
+  {% if error %}
+    <section class="card mt-14">
+      <h2>Error</h2>
+      <p class="muted">{{ error }}</p>
+    </section>
+  {% endif %}
+
+  {% if snap %}
+    <section class="card mt-14">
+      <h2>Summary</h2>
+      <div class="sub">Week scope (Mon → Sun)</div>
+
+      <div class="kpis mt-14">
+        <div class="kpi">
+          <div class="lbl">Raw</div>
+          <div class="val">{{ snap.raw_minutes }}m</div>
+          <div class="mini">{{ snap.raw_pct }}%</div>
+        </div>
+
+        <div class="kpi">
+          <div class="lbl">Effective</div>
+          <div class="val">{{ snap.effective_minutes }}m</div>
+          <div class="mini">{{ snap.effective_pct }}%</div>
+        </div>
+
+        <div class="kpi">
+          <div class="lbl">Target</div>
+          <div class="val">{{ snap.target_minutes }}m</div>
+          <div class="mini">Days counted: {{ snap.days_count }}</div>
+        </div>
+
+        <div class="kpi">
+          <div class="lbl">Week</div>
+          <div class="val">{{ snap.week_start|date:"d M Y" }}</div>
+          <div class="mini">→ {{ snap.week_end_inclusive|date:"d M Y" }}</div>
+        </div>
+      </div>
+
+      <div class="mini mt-14" style="opacity:.8">
+        Note: internally, <code>week_end</code> is stored as next Monday (exclusive) for clean aggregation.
+      </div>
+    </section>
+  {% endif %}
+
+{% endblock %}

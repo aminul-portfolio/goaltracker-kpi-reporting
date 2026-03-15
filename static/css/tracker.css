@@ -1,0 +1,405 @@
+/* static/css/tracker.css */
+/* Tracker-only UI (Today + Quick Add)
+   Scoped to .tracker-page to avoid overriding global styles.
+*/
+
+/* =========================
+   Tokens + native control scheme
+========================= */
+.tracker-page{
+  /* Reuse global tokens from style.css when present */
+  --tp-ink: var(--ink, var(--text, rgba(255,255,255,0.92)));
+  --tp-muted: var(--muted, rgba(255,255,255,0.70));
+  --tp-muted-2: var(--muted-2, rgba(255,255,255,0.52));
+  --tp-border: var(--border, rgba(255,255,255,0.12));
+  --tp-border-2: var(--border-2, rgba(255,255,255,0.14));
+
+  --tp-bg: var(--bg, #0b1220);
+  --tp-surface: rgba(255,255,255,0.03);
+  --tp-surface-2: rgba(255,255,255,0.04);
+
+  --tp-focus: rgba(91,140,255,0.55);
+  --tp-focus-ring: rgba(91,140,255,0.12);
+
+  color: var(--tp-ink);
+
+  /* Make native inputs/selects use dark UI where supported */
+  color-scheme: dark;
+}
+
+/* Try to darken dropdown options (browser support varies) */
+.tracker-page select,
+.tracker-page option{
+  background-color: var(--tp-bg);
+  color: rgba(255,255,255,0.92);
+}
+
+/* Make the calendar icon visible on dark backgrounds */
+.tracker-page input[type="date"]::-webkit-calendar-picker-indicator,
+.tracker-page input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.tracker-page input[type="time"]::-webkit-calendar-picker-indicator{
+  filter: invert(1);
+  opacity: 0.85;
+}
+
+/* =========================
+   Page header
+========================= */
+.tracker-page .page-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+
+.tracker-page .page-title{
+  margin:0;
+  font-size:24px;
+  line-height:1.2;
+  letter-spacing:-0.02em;
+  color: var(--tp-ink);
+}
+
+.tracker-page .page-meta{
+  margin-top:6px;
+  font-size:13px;
+  color: var(--tp-muted);
+}
+
+.tracker-page .inline-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+/* Disabled button-like link (e.g., Quick Add when blocked) */
+.tracker-page a.btn.disabled,
+.tracker-page a.btn[aria-disabled="true"]{
+  pointer-events:none;
+  opacity:0.55;
+  cursor:not-allowed;
+  text-decoration:none;
+}
+
+/* =========================
+   Divider + headings
+========================= */
+.tracker-page .hr{
+  height:1px;
+  background: var(--tp-border);
+  margin:18px 0;
+  border-radius:999px;
+}
+
+.tracker-page .h2{
+  margin:0;
+  font-size:18px;
+  line-height:1.25;
+  color: var(--tp-ink);
+}
+
+.tracker-page .mini{
+  font-size:12px;
+  color: var(--tp-muted);
+}
+
+.tracker-page .sub{
+  font-size:13px;
+  color: var(--tp-muted-2);
+}
+
+.tracker-page .hint{
+  font-size:12px;
+  color: var(--tp-muted-2);
+}
+
+/* =========================
+   Accessibility helpers
+========================= */
+.tracker-page .sr-only{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  white-space:nowrap !important;
+  border:0 !important;
+}
+
+/* =========================
+   Alerts (fallback styling)
+   If Bootstrap exists, this still looks fine.
+========================= */
+.tracker-page .alert{
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid var(--tp-border);
+  background: var(--tp-surface);
+  color: var(--tp-ink);
+}
+
+.tracker-page .alert-danger{
+  border-color: rgba(255,77,109,0.28);
+  background: rgba(255,77,109,0.10);
+}
+
+.tracker-page .alert-warning{
+  border-color: rgba(255,176,32,0.28);
+  background: rgba(255,176,32,0.10);
+}
+
+/* =========================
+   Form layout
+========================= */
+.tracker-page .form-grid{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap:12px;
+}
+
+.tracker-page .form-grid.two{
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 820px){
+  .tracker-page .form-grid.two{ grid-template-columns: 1fr; }
+}
+
+.tracker-page .field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+}
+
+.tracker-page .field-actions{
+  display:flex;
+  align-items:flex-end;
+}
+
+.tracker-page .form-label{
+  display:block;
+  font-size:12px;
+  font-weight:650;
+  color: var(--tp-muted);
+  margin-bottom:6px;
+}
+
+/* Inline form helper (used by Start Day form) */
+.tracker-page .d-inline{ display:inline-block; }
+
+/* Minimal “stack” helper used by templates */
+.tracker-page .stack{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+.tracker-page .gap-10{ gap:10px; }
+
+/* =========================
+   Form controls
+========================= */
+.tracker-page input[type="text"],
+.tracker-page input[type="datetime-local"],
+.tracker-page input[type="time"],
+.tracker-page input[type="number"],
+.tracker-page input[type="date"],
+.tracker-page textarea,
+.tracker-page select{
+  width:100%;
+  border:1px solid var(--tp-border);
+  border-radius:12px;
+  padding:10px 12px;
+  background: rgba(0,0,0,0.18); /* aligns with global style.css form tone */
+  color: var(--tp-ink);
+  outline:none;
+  min-width:0;
+}
+
+.tracker-page textarea{ min-height:96px; }
+
+.tracker-page input:focus,
+.tracker-page textarea:focus,
+.tracker-page select:focus{
+  border-color: var(--tp-focus);
+  box-shadow: 0 0 0 4px var(--tp-focus-ring);
+}
+
+/* Keep your explicit .input class working too */
+.tracker-page .input{
+  background: rgba(0,0,0,0.18);
+  color: var(--tp-ink);
+  border-color: var(--tp-border);
+}
+
+/* Disabled controls */
+.tracker-page input:disabled,
+.tracker-page textarea:disabled,
+.tracker-page select:disabled{
+  opacity:0.65;
+  cursor:not-allowed;
+}
+
+/* =========================
+   Today: End-day reflection panel
+   (Fixes the “giant red bar” layout)
+========================= */
+
+/* Anchor jumps shouldn't hide behind the top navbar/header */
+.tracker-page #endday{
+  scroll-margin-top: 110px;
+}
+
+.tracker-page .endday-panel{
+  display:grid;
+  grid-template-columns: 1.35fr 0.65fr;
+  gap: 14px;
+  align-items:end;
+  margin-top: 14px;
+}
+
+.tracker-page .endday-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+/* Small keycap pill */
+.tracker-page .kbd{
+  display:inline-block;
+  font-size: 12px;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.86);
+}
+
+/* Make end-day textarea compact (don’t inherit global textarea min-height) */
+.tracker-page .endday-panel textarea{
+  min-height: unset;
+}
+
+/* CTA column (button + hint) */
+.tracker-page .endday-cta{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+}
+
+.tracker-page .endday-cta .btn{
+  width:100%;
+  max-width: 360px; /* prevents full-width “giant bar” */
+  margin-left:auto;
+}
+
+@media (max-width: 860px){
+  .tracker-page .endday-panel{ grid-template-columns: 1fr; }
+  .tracker-page .endday-cta .btn{ max-width: none; margin-left: 0; }
+  .tracker-page .endday-head{ align-items:flex-start; }
+}
+
+/* =========================
+   Timer layout helpers
+========================= */
+.tracker-page .timer-start-form{
+  width:100%;
+}
+
+.tracker-page .timer-start-fields{
+  display:grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr) minmax(0, 1.2fr);
+  gap:10px;
+  align-items:center;
+  margin-bottom:10px;
+}
+
+@media (max-width: 820px){
+  .tracker-page .timer-start-fields{
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Inside the timer form, push Start/Stop to the right when there's space */
+.tracker-page .timer-start-form .inline-actions{
+  width:100%;
+  justify-content:flex-end;
+  gap:10px;
+}
+
+.tracker-page .timer-start-form .btn{
+  white-space:nowrap;
+}
+
+/* =========================
+   Tables
+========================= */
+.tracker-page .table-wrap{
+  overflow:auto;
+  border:1px solid var(--tp-border);
+  border-radius:14px;
+  background: var(--tp-surface);
+}
+
+.tracker-page .table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+.tracker-page .table th,
+.tracker-page .table td{
+  padding:10px 12px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  vertical-align:top;
+  white-space:nowrap;
+}
+
+@media (max-width: 820px){
+  .tracker-page .table th,
+  .tracker-page .table td{ white-space:normal; }
+}
+
+.tracker-page .table thead th{
+  position:sticky;
+  top:0;
+  background: rgba(11,18,32,0.72);
+  backdrop-filter: blur(10px);
+  z-index:1;
+  font-size:12px;
+  color: rgba(255,255,255,0.72);
+}
+
+.tracker-page .table tbody tr:hover td{
+  background: rgba(255,255,255,0.03);
+}
+
+.tracker-page .table a{
+  color: rgba(255,255,255,0.92);
+  text-decoration:none;
+}
+.tracker-page .table a:hover{
+  text-decoration:underline;
+}
+
+.tracker-page .right{ text-align:right; }
+
+/* =========================
+   Utilities (used in templates)
+========================= */
+.tracker-page .w-100{ width:100%; }
+
+.tracker-page .mt-8{ margin-top:8px; }
+.tracker-page .mt-10{ margin-top:10px; }
+.tracker-page .mt-14{ margin-top:14px; }
+
+.tracker-page .mb-8{ margin-bottom:8px; }
+.tracker-page .mb-10{ margin-bottom:10px; }
+.tracker-page .mb-14{ margin-bottom:14px; }

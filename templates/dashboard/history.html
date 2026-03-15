@@ -1,0 +1,347 @@
+{# templates/dashboard/history.html #}
+{% extends "base.html" %}
+{% load static tz %}
+
+{% block title %}History + Trend | GoalTracker{% endblock %}
+{% block body_class %}app-body dashboard-page history-page{% endblock %}
+
+{% block page_css %}
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">History + Trend</h1>
+      {% if goal %}
+        <div class="page-meta">
+          Goal: <strong>{{ goal.name }}</strong>
+          · Window: {{ window_start_local|date:"d M" }} → {{ window_end_local|date:"d M" }}
+          {% if now_local %} · Now (London): {{ now_local|date:"d M Y H:i" }}{% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="page-actions" aria-label="Page actions">
+      <a class="btn btn-ghost" href="{% url 'dashboard:home' %}">Back to Dashboard</a>
+      <a class="btn btn-ghost" href="{% url 'tracker:today' %}">Today</a>
+      <a class="btn btn-ghost" href="{% url 'tracker:session_new' %}">Quick Add</a>
+    </div>
+  </div>
+
+  {% if error %}
+    <section class="card mt-14">
+      <h2 class="h2">Error</h2>
+      <p class="muted">{{ error }}</p>
+    </section>
+  {% else %}
+
+    <section class="grid mt-14">
+
+      {# SUMMARY #}
+      <div class="card span-12">
+        <div class="card-head">
+          <div>
+            <h2 class="h2">Window Summary</h2>
+            <p class="sub">Raw vs Effective, consistency, and best day</p>
+          </div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="lbl">Total (Raw)</div>
+            <div class="val">{{ total_raw_h }} h</div>
+          </div>
+
+          <div class="kpi">
+            <div class="lbl">Total (Effective)</div>
+            <div class="val">{{ total_eff_h }} h</div>
+            <div class="mini">Gain: +{{ total_gain_h }} h</div>
+          </div>
+
+          <div class="kpi">
+            <div class="lbl">Days elapsed</div>
+            <div class="val">{{ days_elapsed }} / {{ duration_days }}</div>
+            <div class="mini">Days with work: {{ days_with_work }}</div>
+          </div>
+
+          <div class="kpi">
+            <div class="lbl">Avg effective/day</div>
+            <div class="val">{{ avg_eff_h }} h</div>
+            <div class="mini">Best day: {{ best_day_eff_h }} h · {{ best_day_label }}</div>
+          </div>
+        </div>
+      </div>
+
+      {# TREND CHART #}
+      <div class="card span-12">
+        <div class="card-head">
+          <div>
+            <h2 class="h2">Trend (Raw vs Effective)</h2>
+            <p class="sub">Last {{ duration_days }} days</p>
+          </div>
+        </div>
+
+        <div class="chart-wrap mt-14">
+          <canvas id="trendChart" height="120"></canvas>
+        </div>
+
+        {# Safe JSON payloads via json_script #}
+        {{ chart_labels|json_script:"chart-labels" }}
+        {{ chart_raw_h|json_script:"chart-raw" }}
+        {{ chart_eff_h|json_script:"chart-eff" }}
+      </div>
+
+      {# DAILY BREAKDOWN (5 per row + paginated) #}
+      <div id="daily-breakdown" class="card span-12">
+        <div class="card-head">
+          <div>
+            <h2 class="h2">Daily breakdown</h2>
+            <div class="sub">Raw vs Effective per day (future days are shown as 0)</div>
+          </div>
+
+          <div class="daily-pager" aria-label="Daily breakdown paging">
+            {% if daily_page_obj %}
+              {% if daily_page_obj.has_previous %}
+                <a class="btn btn-ghost" href="?p={{ daily_page_obj.previous_page_number }}#daily-breakdown">Previous</a>
+              {% else %}
+                <span class="btn btn-ghost" aria-disabled="true">Previous</span>
+              {% endif %}
+
+              <span class="pager-meta">
+                Page <strong>{{ daily_page_obj.number }}</strong> / {{ daily_page_obj.paginator.num_pages }}
+              </span>
+
+              {% if daily_page_obj.has_next %}
+                <a class="btn btn-ghost" href="?p={{ daily_page_obj.next_page_number }}#daily-breakdown">Next</a>
+              {% else %}
+                <span class="btn btn-ghost" aria-disabled="true">Next</span>
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+
+        {% if daily_page_obj %}
+          <div class="pager-sub">
+            Showing {{ daily_page_obj.start_index }}–{{ daily_page_obj.end_index }}
+            of {{ daily_page_obj.paginator.count }} ({{ daily_page_size }} per page)
+          </div>
+        {% endif %}
+
+        <div class="daily-grid">
+          {% for r in date_rows %}
+            <div class="day-card {% if r.is_future %}is-future{% endif %}">
+              <div class="day-card-head">
+                <div class="day-card-title">
+                  <div class="day-date">{{ r.date|date:"d M Y" }}</div>
+                  <div class="mini">{{ r.dow }}</div>
+                </div>
+                {% if r.is_future %}
+                  <span class="pill">Future</span>
+                {% endif %}
+              </div>
+
+              <div class="day-metrics">
+                <div class="metric">
+                  <div class="metric-top">
+                    <div class="lbl">Raw</div>
+                    <div class="val-sm">{{ r.raw_h }}h</div>
+                  </div>
+                  <div class="bar">
+                    <div class="fill" style="width: {{ r.raw_bar }}%;"></div>
+                  </div>
+                  <div class="mini">{{ r.raw_pct }}%</div>
+                </div>
+
+                <div class="metric">
+                  <div class="metric-top">
+                    <div class="lbl">Eff</div>
+                    <div class="val-sm">{{ r.eff_h }}h</div>
+                  </div>
+                  <div class="bar">
+                    <div class="fill green" style="width: {{ r.eff_bar }}%;"></div>
+                  </div>
+                  <div class="mini">{{ r.eff_pct }}%</div>
+                </div>
+              </div>
+
+              <div class="day-foot">
+                <span class="mini">Gain: +{{ r.gain_h }}h</span>
+              </div>
+            </div>
+          {% empty %}
+            <div class="muted">No daily totals yet.</div>
+          {% endfor %}
+        </div>
+
+        {% if daily_page_obj %}
+          {# Bottom pager: mobile only (CSS hides on desktop) #}
+          <div class="daily-pager-bottom" aria-label="Daily breakdown paging">
+            {% if daily_page_obj.has_previous %}
+              <a class="btn btn-ghost" href="?p={{ daily_page_obj.previous_page_number }}#daily-breakdown">Previous</a>
+            {% endif %}
+            {% if daily_page_obj.has_next %}
+              <a class="btn btn-ghost" href="?p={{ daily_page_obj.next_page_number }}#daily-breakdown">Next</a>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+
+      {# WEEKLY BREAKDOWN #}
+      <div class="card span-12">
+        <div class="card-head">
+          <div>
+            <h2 class="h2">Weekly breakdown</h2>
+            <div class="sub">ISO weeks (Mon → Sun)</div>
+          </div>
+        </div>
+
+        <div class="table-wrap mt-14">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Week</th>
+                <th>Range</th>
+                <th class="right">Raw (h)</th>
+                <th class="right">Eff (h)</th>
+                <th class="right">Gain (h)</th>
+                <th class="right">Raw %</th>
+                <th class="right">Eff %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for w in week_rows %}
+                <tr>
+                  <td><strong>{{ w.week_key }}</strong></td>
+                  <td>{{ w.week_start|date:"d M" }} → {{ w.week_end_inclusive|date:"d M" }}</td>
+                  <td class="right">
+                    {{ w.raw_h }}
+                    <div class="bar mt-8"><div class="fill" style="width: {{ w.raw_bar }}%;"></div></div>
+                  </td>
+                  <td class="right">
+                    {{ w.eff_h }}
+                    <div class="bar mt-8"><div class="fill green" style="width: {{ w.eff_bar }}%;"></div></div>
+                  </td>
+                  <td class="right">{{ w.gain_h }}</td>
+                  <td class="right">{{ w.raw_pct }}%</td>
+                  <td class="right">{{ w.eff_pct }}%</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="7">No weekly totals yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {# CATEGORY TREND #}
+      <div class="card span-12">
+        <div class="card-head">
+          <div>
+            <h2 class="h2">Top Categories (weekly)</h2>
+            <div class="sub">Top 5 categories by total effective hours, with weekly effective hours.</div>
+          </div>
+        </div>
+
+        <div class="table-wrap mt-14">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th class="right">Total Eff</th>
+                <th class="right">Share</th>
+                {% for wc in week_cols %}
+                  <th class="right">{{ wc.key }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in cat_trend_rows %}
+                <tr>
+                  <td><strong>{{ c.name }}</strong></td>
+                  <td class="right">{{ c.total_eff_h }} h</td>
+                  <td class="right">{{ c.share_pct }}%</td>
+                  {% for w in c.weeks %}
+                    <td class="right">{{ w.eff_h }}</td>
+                  {% endfor %}
+                </tr>
+              {% empty %}
+                <tr><td colspan="{{ week_cols|length|add:3 }}">No category trend yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  {% endif %}
+
+{% endblock %}
+
+{% block page_js %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var canvas = document.getElementById("trendChart");
+      if (!canvas || !window.Chart) return;
+
+      // Prevent double-init (e.g., with Turbo/HTMX or partial reload patterns)
+      if (canvas.__chartInstance) return;
+
+      var labelsEl = document.getElementById("chart-labels");
+      var rawEl = document.getElementById("chart-raw");
+      var effEl = document.getElementById("chart-eff");
+
+      var labels = JSON.parse((labelsEl && labelsEl.textContent) || "[]");
+      var raw = JSON.parse((rawEl && rawEl.textContent) || "[]");
+      var eff = JSON.parse((effEl && effEl.textContent) || "[]");
+
+      // Theme-friendly axis/grid colors (works on both dark/light tokens)
+      var root = document.documentElement;
+      var cs = window.getComputedStyle(root);
+      var muted = (cs.getPropertyValue("--muted") || "rgba(15,23,42,0.65)").trim();
+      var border = (cs.getPropertyValue("--border") || "rgba(15,23,42,0.12)").trim();
+
+      var ctx = canvas.getContext("2d");
+
+      canvas.__chartInstance = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [
+            { label: "Raw (h)", data: raw, tension: 0.25 },
+            { label: "Effective (h)", data: eff, tension: 0.25 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: {
+              position: "top",
+              labels: { color: muted }
+            },
+            tooltip: { mode: "index", intersect: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: "Hours", color: muted },
+              ticks: { color: muted },
+              grid: { color: border }
+            },
+            x: {
+              ticks: { maxRotation: 0, autoSkip: true, color: muted },
+              grid: { color: border }
+            }
+          }
+        }
+      });
+    })();
+  </script>
+{% endblock %}

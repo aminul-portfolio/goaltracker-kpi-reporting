@@ -1,0 +1,153 @@
+{# templates/snapshots/history.html #}
+{% extends "base.html" %}
+{% load static tz %}
+
+{% block title %}Snapshots | GoalTracker{% endblock %}
+{% block body_class %}app-body snapshots-page{% endblock %}
+
+{% block page_css %}
+  <link rel="stylesheet" href="{% static 'css/snapshots.css' %}">
+{% endblock %}
+
+{% block content %}
+
+  <div class="snap-head">
+    <div>
+      <h1 class="snap-title">Snapshots</h1>
+      <div class="muted">Daily + weekly summaries</div>
+    </div>
+    <div class="snap-links">
+      <a class="btn btn-ghost" href="{% url 'dashboard:home' %}">Dashboard</a>
+      <a class="btn btn-ghost" href="{% url 'tracker:today' %}">Today</a>
+    </div>
+  </div>
+
+  {% if error %}
+    <section class="card mt-14">
+      <h2 class="h2">Error</h2>
+      <p class="muted">{{ error }}</p>
+    </section>
+  {% else %}
+
+    <section class="grid mt-14">
+
+      <div class="card span-12">
+        <div class="card-head">
+          <div>
+            <h2 class="h2">Daily snapshots</h2>
+            <div class="sub">Newest first</div>
+          </div>
+        </div>
+
+        <div class="table-wrap mt-14">
+          <table class="table">
+            <caption class="sr-only">Daily snapshots</caption>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th class="center">Rating</th>
+                <th class="right">Sessions</th>
+                <th class="right">Raw</th>
+                <th class="right">Effective</th>
+                <th class="right">Progress</th>
+                <th class="right">Target</th>
+                <th>Reflection</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in days %}
+                <tr>
+                  <td>
+                    <a href="{% url 'snapshots:day_detail' day_key=d.day_key %}">
+                      <strong>{{ d.day_key|date:"d M Y" }}</strong>
+                    </a>
+                  </td>
+
+                  <td class="center">
+                    {% with label=d.rating|default:"Unknown"|title key=d.rating|default:"unknown"|slugify %}
+                      <span class="rating-pill rating-{{ key }}">{{ label }}</span>
+                    {% endwith %}
+                  </td>
+
+                  <td class="right">{{ d.sessions_count|default:"0" }}</td>
+                  <td class="right">{{ d.raw_minutes|default:"0" }}m</td>
+                  <td class="right">{{ d.effective_minutes|default:"0" }}m</td>
+                  <td class="right">{{ d.effective_pct|default:"0" }}%</td>
+                  <td class="right">{{ d.target_minutes|default:"—" }}m</td>
+
+                  <td class="col-reflection">
+                    {% if d.reflection %}
+                      <span class="reflection" title="{{ d.reflection|escape }}">{{ d.reflection }}</span>
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr class="empty">
+                  <td colspan="8">No daily snapshots yet.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card span-12">
+        <div class="card-head">
+          <div>
+            <h2 class="h2">Weekly snapshots</h2>
+            <div class="sub">Week start → week end</div>
+          </div>
+        </div>
+
+        <div class="table-wrap mt-14">
+          <table class="table">
+            <caption class="sr-only">Weekly snapshots</caption>
+            <thead>
+              <tr>
+                <th>Week</th>
+                <th class="center">Rating</th>
+                <th class="right">Days</th>
+                <th class="right">Raw</th>
+                <th class="right">Effective</th>
+                <th class="right">Progress</th>
+                <th class="right">Target</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for w in weeks %}
+                <tr>
+                  <td>
+                    <a href="{% url 'snapshots:week_detail' week_start=w.week_start %}">
+                      <strong>{{ w.week_start|date:"d M Y" }}</strong> → {{ w.week_end_inclusive|date:"d M Y" }}
+                    </a>
+                  </td>
+
+                  <td class="center">
+                    {% with label=w.rating|default:"Unknown"|title key=w.rating|default:"unknown"|slugify %}
+                      <span class="rating-pill rating-{{ key }}">{{ label }}</span>
+                    {% endwith %}
+                  </td>
+
+                  <td class="right">{{ w.days_count|default:"0" }}</td>
+                  <td class="right">{{ w.raw_minutes|default:"0" }}m</td>
+                  <td class="right">{{ w.effective_minutes|default:"0" }}m</td>
+                  <td class="right">{{ w.effective_pct|default:"0" }}%</td>
+                  <td class="right">{{ w.target_minutes|default:"—" }}m</td>
+                </tr>
+              {% empty %}
+                <tr class="empty">
+                  <td colspan="7">No weekly snapshots yet.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  {% endif %}
+
+{% endblock %}
