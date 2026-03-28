@@ -370,6 +370,13 @@ The full v2 Power BI-oriented export contract alongside legacy v1 CSV surfaces, 
 
 ---
 
+### 6 — Power BI Dashboard (Premium Dark)
+SaaS-grade dark theme layout with KPI strip, Core Overview (bar chart + donut), Sprint Tracker (cumulative line chart), Deep Analysis (histogram + scatter + efficiency bars), and Hire Manager summary panel.
+
+![Power BI Dashboard — Dark](docs/proof/screenshots/goaltracker_06_powerbi_dashboard.png)
+
+---
+
 ## Notes
 
 - Repository is intended for portfolio and review purposes.
